@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { Text, View, Button, Platform } from "react-native";
+import { Text, View, Button, Platform, Linking } from "react-native";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import Constants from "expo-constants";
+import { router } from "expo-router";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -92,37 +93,21 @@ async function registerForPushNotificationsAsync() {
 function useNotificationObserver() {
   useEffect(() => {
     let isMounted = true;
-
-    function redirect(notification) {
-      const url = notification.request.content.data?.url;
-      console.log("url ; ", url);
-      if (url) {
-        router.push(url);
-      }
-    }
-
-    Notifications.getLastNotificationResponseAsync().then((response) => {
-      console.log("response ==> ", response);
-      if (!isMounted || !response?.notification) {
-        return;
-      }
-      redirect(response?.notification);
-    });
-
     const subscription = Notifications.addNotificationResponseReceivedListener(
       (response) => {
-        redirect(response.notification);
+        if (!isMounted || !response?.notification) {
+          return;
+        }
+        const url = response.notification.request.content.data.url;
+        console.log("url check : ", url);
+        router.push(url);
       }
     );
-
-    return () => {
-      isMounted = false;
-      subscription.remove();
-    };
+    return () => subscription.remove();
   }, []);
 }
 
-export default function App() {
+export default function Page() {
   useNotificationObserver();
   const [expoPushToken, setExpoPushToken] = useState("");
   const [notification, setNotification] = useState(undefined);
